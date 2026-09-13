@@ -22,20 +22,22 @@ npm install
 
 | Area | Before | After |
 |------|--------|--------|
-| Auth | `new ClobClient(host, chainId, wallet)` + derive/create API key + re-init | `await createSecureClient({ signer: signerFrom(ethersWallet), credentials? })` |
+| Auth | `new ClobClient(host, chainId, wallet)` + derive/create API key + re-init | `await createSecureClient({ signer: signerFrom(ethersWallet), credentials? })` via `@polymarket/client/ethers-v5` |
 | Limit orders | `createAndPostOrder(...)` | `placeLimitOrder({ tokenId, price, size, side })` (tick/neg-risk auto) |
 | Market orders | `createAndPostMarketOrder(...)` | `placeMarketOrder(...)` (BUY uses `amount`; SELL maps legacy `amount` → `shares`) |
 | Cancel / open / trades | `cancel*`, `getOpenOrders`, `getTrades` | `cancelOrder({ orderId })`, `listOpenOrders` / `listAccountTrades` paginators |
-| Public books/prices | `ClobClient.getOrderBook` etc. | `createPublicClient()` → `fetchOrderBook`, `fetchMidpoint`, `listPriceHistory`, … |
-| Rewards | `getCurrentRewards` / `getEarningsForUserForDay` | `listCurrentRewards` / `listUserEarningsForDay` (see gaps) |
-| Balance cache | `getBalanceAllowance` / `updateBalanceAllowance` on ClobClient | low-level `@polymarket/client/actions` helpers |
+| Public books/prices | `ClobClient.getOrderBook` etc. | `createPublicClient()` → `fetchOrderBook`, `fetchMidpoint`, `listPriceHistory`, `listMarkets` |
+| Rewards | `getCurrentRewards` / earnings day APIs | `listCurrentRewards` / `listUserEarningsForDay` (see gaps) |
+| Balance cache | `getBalanceAllowance` / `updateBalanceAllowance` on ClobClient | `@polymarket/client/actions` helpers |
 
 `TradingService` **public methods are unchanged** (`createLimitOrder`, `createMarketOrder`, `cancel*`, `getOpenOrders`, `getTrades`, `getBalanceAllowance`, `getAddress`, `getCredentials`, `isInitialized`, …) so strategies can migrate gradually.
+
+`MarketService` **public API is unchanged**; implementation is split across layered modules (`market-service-*.ts`) that still export `MarketService` from `market-service.ts`.
 
 ## Dry-run vs live
 
 - **Dry-run (recommended first):** keep `DRY_RUN=true` (default in bot configs). No live orders are required to validate compile/tests.
-- **Live trading:** set `DRY_RUN=false` and provide wallet env vars (typically `POLYMARKET_PRIVATE_KEY`, and optionally a funder/`POLYMARKET_WALLET_ADDRESS` if you trade through a proxy/deposit wallet). Never commit `.env`.
+- **Live trading:** set `DRY_RUN=false` and provide wallet env vars (typically `POLYMARKET_PRIVATE_KEY`, and optionally `POLYMARKET_WALLET_ADDRESS` if you trade through a proxy/deposit wallet). Never commit `.env`.
 
 ## Known gaps
 
@@ -43,7 +45,7 @@ npm install
 2. **`getClobClient()`:** deprecated; returns `null`. Use `getSecureClient()`.
 3. **`package-lock.json`:** not regenerated in this PR — run `npm install` locally.
 4. **Node engine:** SDK wants Node ≥ 24; older runtimes may fail to install/run.
-5. **Balance helpers:** `getBalanceAllowance` / `updateBalanceAllowance` use `@polymarket/client/actions` (not instance methods). Unified order placement also auto-manages missing allowances when possible.
+5. **Balance helpers:** `getBalanceAllowance` / `updateBalanceAllowance` use `@polymarket/client/actions` (not instance methods).
 
 ## How to test
 
